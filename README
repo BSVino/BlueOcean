@@ -1,0 +1,81 @@
+Blue Ocean
+Jorge Rodriguez
+
+Builds on VS 2013. seagrass.cpp takes a while to build, this is normal.
+
+Some notes about the maths used to do this:
+
+* The caustics do physical simulations of how light is bent as it passes through
+ocean waves. The waves are modeled as cycloids, and root-finding methods are
+used in the shader to calculate the point on the ocean surface that originally
+sent light to the current pixel. Then the second derivative of the wave model
+function is used as an estimate of the density of light arriving from that point
+on the ocean surface. Four bisections and three newton-rhapsons are needed for
+algorithmic stability. Also, the ocean is assumed to be much shallower than it
+actually is so that the light rays don't cross, as crossing causes multiple
+roots per y value, which causes the algorithm to be unstable. Better results
+could be achieved if the algorithm found more roots, but this is a school
+assignment. A better cycloid function could also yield better results, I used a
+single low frequency/high amplitude wave and three high frequency/low amplitude
+waves at approximately 120 degree angles to each other.
+
+Reference papers:
+ Fournier 1986 - A Simple Model of Ocean Waves
+ Tessendorf 1999 - Simulating Ocean Water
+ Bruneton 2009 - Real-time Realistic Ocean Lighting using Seamless Transitions
+  from Geometry to BRDF
+
+* The fish are simulated as boids using the original Reynolds paper. I wrote
+the code some weeks before this course began and that's what inspired me to do
+an underwater scene. Since the fish aren't actually fulfilling any requirements
+it should be no problem. The algorithm has three parts, collision avoidance
+(don't get too close to other boids,) position matching (everybody wants to be
+in the center of the flock,) and velocity matching (match the average velocity
+of your nearby flockmates.) A simple spatial partitioning structure dividing
+space into cells is used to accelerate the neighbor tests. For the purposes of
+maintaining large group sizes, only the position matching needs to access all
+of the fish in a group - ie for group sizes of 100 each fish needs to position
+match to approximately 100 other fish. The other two parts of the algorithm can
+run on only the nearest 5 or 10 fish. So position matching runs at a lower
+frame rate than does velocity matching and collision avoidance, but the latter
+two only use the nearest 5 or 10 neighbors while position matching uses the
+nearest 100. The fish also avoid the camera and the sea floor. With current
+optimizations I've been able to have 1700 fish on this computer while
+maintaining 30 frames.
+
+Reference paper:
+ Reynolds 1987 - Flocks, Herds, and Schools: A Distributed Behavioral Model
+
+* The sea grasses are done with vertex shaders. Each vertex has a 'flex'
+vertex attribute indicating how far it is from the anchor point, the sea bed.
+Then the vertex shader uses the flex value to bend the blade of grass using
+a similar cycloid generation function as that used to generate the caustics.
+As the shader doesn't use the z position of the original grass blade model,
+that could be omitted from the model data to save space, but it wouldn't be
+much of a savings. The biggest expense is sending 16000 4x4 matrices to the
+gpu every frame. My original plan to save on this was to break the data into
+patches and only render patches in view, I have some structural code to do
+this but performance without it was acceptable so I didn't use it. I could
+save on that by sending only position vectors, but I didn't want to mess with
+the shader to set that up. I could save on that more by generating a texture
+with the position data in it and using a geometry shader or indexing. If that
+were in place, the game could easily render all of the grass in the player's
+view without a significant performance penalty.
+
+* The camera is controlled by a cubic spline. Constructing the spline is done
+with an LR decomposition function taken from a numerical analysis textbook. But
+the spline has a variable velocity parameterization, so I need to reparameterize
+the curve for constant velocity. For this, first calculate the arc length of
+each section of the cubic. Then my goal is to know at what time t the camera
+should be t units along the curve. So I need to solve arclength(S) - t = 0,
+which can be solved by root finding. Since the arc length is an integral, its
+derivative is just the integrand (by the FTC) and I use composite simpson's
+rule to calculate the integral.
+
+* The sea weeds are done by physically simulating each link in the seaweed with
+a simple sum of forces calculation. After that, each link will have grown or
+shrunk but their lengths should remain constant, so another root finding round
+is used to maintain link lengths. (You can tell I like root finding.) Only one
+iteration is used per link, since it's not required to be strict with the
+length requirement, in fact some give looks better.
+

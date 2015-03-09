@@ -1,0 +1,9 @@
+/Debug
+/*.suo
+/*.opensdf
+/*.sdf
+/Release
+/heightmap/Debug
+/heightmap/Release
+/grass_patches/Debug
+/grass_patches/Release
