@@ -158,7 +158,7 @@ void SimulateSeaweed()
 			new_position.z = max(new_position.z, GetSeaBedHeight(new_position.x, new_position.y) + g_seaweed_thickness);
 
 			vec3 section = new_position - lower_link_position;
-			// Do a newton to reset the section length
+			// Do a fixed-point iteration to reset the section length
 			float r = 2.0f*link_length_squared / (dot(section, section) + link_length_squared);
 			vec3 normalized_position = lower_link_position + section * r;
 
